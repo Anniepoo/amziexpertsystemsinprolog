@@ -1,5 +1,5 @@
-:- module(birds, [multivalued/1]).
-:- use_module(nativeshell).
+% :- module(birds, [multivalued/1]).
+% :- use_module(nativeshell).
 
 % BIRDS - a sample bird identification system for use with the
 % Native shell.

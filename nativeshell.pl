@@ -1,13 +1,16 @@
 % Native - a simple shell for use with Prolog
 % knowledge bases.  It includes expanations.
-:- module(nativeshell, [main/0, ask/2, ask/3,menuask/3,menuask/4]).
+%  :- module(nativeshell, [start_shell/0, ask/2,
+% ask/3,menuask/3,menuask/4]).
 
 :-op(900,xfy, :).
 
 % for SWI-Prolog
-:- dynamic known/3.
+:- dynamic known/3, multivalued/1.
 
-main :-
+% SWI-Prolog defines main/0
+% so I've renamed this to start_shell
+start_shell :-
 	greeting,
 	repeat,
 	write('> '),
