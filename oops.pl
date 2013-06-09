@@ -5,27 +5,33 @@
 %
 % author Dennis Merritt
 % Copyright (c) Dennis Merritt, 1986
-
+%
+%  converted to SWI-Prolog, Anne Ogborn, 2013
+%  license is unclear, contact Anne if you want this removed
+%
+%  had to change : operator to >>> to avoid swi-prolog module operator
+%
 % operator definitions
 
 :-op(800,xfx,==>).          % used to separate LHS and RHS of rule
-:-op(500,xfy,:).            % used to separate attributes and values
+:-op(500,xfy,>>>).            % used to separate attributes and values
 :-op(810,fx,rule).          % used to define rule
 :-op(700,xfy,#).            % used for unification instead of =
 
-main :- welcome, supervisor.
+main :- welcome,
+	supervisor.
 
 welcome  :-
 	nl,nl,
-	write($         OOPS - A Toy Production System$),nl,nl,
-	write($This is an interpreter for files containing rules coded in the$),nl,
-	write($OOPS format.$),nl,nl,
-	write($The => prompt accepts three commands:$),nl,nl,
-	write($   load. -  prompts for name of rules file$),nl,
-	write($            enclose in single quotes$),nl,
-	write($   list. -  lists working memory$),nl,
-	write($   go.   -  starts the inference$),nl,
-	write($   exit. -  does what you'd expect$),nl,nl.
+	write('         OOPS - A Toy Production System'),nl,nl,
+	write('This is an interpreter for files containing rules coded in the'),nl,
+	write('OOPS format.'),nl,nl,
+	write('The => prompt accepts three commands:'),nl,nl,
+	write('   load. -  prompts for name of rules file'),nl,
+	write('            enclose in single quotes'),nl,
+	write('   list. -  lists working memory'),nl,
+	write('   go.   -  starts the inference'),nl,
+	write('   exit. -  does what you\'d expect'),nl,nl.
 
 % the supervisor, uses a repeat fail loop to read and process commands
 % from the user
@@ -53,11 +59,13 @@ do(_) :- write('invalid command').
 % loads the rules (Prolog terms) into the Prolog database
 
 load :-
-	write('Enter file name in single quotes (ex. ''room.okb''.): '),
+	write('Enter file name in single quotes (ex. \'room.okb\'.): '),
 	read(F),
 	reconsult(F).            % loads a rule file into interpreter work space
 
 % assert each of the initial conditions into working storage
+
+:- dynamic initial_data/1.
 
 initialize :-
 	initial_data(X),
@@ -65,6 +73,9 @@ initialize :-
 
 % working storage is represented by database terms stored
 % under the key "fact"
+%
+:- dynamic fact/1.
+:- dynamic ('rule')/1.
 
 assert_list([]) :- !.
 assert_list([H|T]) :-
@@ -76,7 +87,7 @@ assert_list([H|T]) :-
 % no rules succeed, stop the inference
 
 go :-
-	call(rule ID: LHS ==> RHS),
+	call(rule ID >>> LHS ==> RHS),
 	try(LHS,RHS),
 	write('Rule fired '),write(ID),nl,
 	!,go.
@@ -99,7 +110,7 @@ try(LHS,RHS) :-
 % working storage
 
 match([]) :- !.
-match([N:Prem|Rest]) :-
+match([_>>>Prem|Rest]) :-
 	!,
 	(fact(Prem);
 	 test(Prem)),          % a comparison test rather than a fact
@@ -114,7 +125,7 @@ match([Prem|Rest]) :-
 test(not(X)) :-
 	fact(X),
 	!,fail.
-test(not(X)) :- !.
+test(not(_)) :- !.
 test(X#Y) :- X=Y,!.
 test(X>Y) :- X>Y,!.
 test(X>=Y) :- X>=Y,!.
@@ -152,12 +163,13 @@ take(list(X)) :- lst(X), !.
 % logic for retraction
 
 retr(all,LHS) :-retrall(LHS),!.
-retr(N,[]) :-write('retract error, no '-N),nl,!.
-retr(N,[N:Prem|_]) :- retract(fact(Prem)),!.
+
+retr(N,[]) :-write('retract error, no '-N),nl, gtrace, !.
+retr(N,[N >>> Prem|_]) :- retract(fact(Prem)),!.
 retr(N,[_|Rest]) :- !,retr(N,Rest).
 
 retrall([]).
-retrall([N:Prem|Rest]) :-
+retrall([_ >>> Prem|Rest]) :-
 	retract(fact(Prem)),
 	!, retrall(Rest).
 retrall([Prem|Rest]) :-
@@ -182,9 +194,3 @@ lst(X) :-
 	fail.
 lst(_) :- !.
 
-% utilities
-
-member(X,[X|Y]).
-member(X,[Y|Z]) :- member(X,Z).
-
-
