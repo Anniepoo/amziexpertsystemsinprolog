@@ -6,18 +6,34 @@
 :-op(900,xfy, :).
 
 % for SWI-Prolog
+:- initialization(start_shell).        % start shell on load
 :- dynamic known/3, multivalued/1.
 
 % SWI-Prolog defines main/0
 % so I've renamed this to start_shell
+%start_shell :-
+%	greeting,
+%	repeat,
+%	write('> '),
+%	read(X),
+%	do(X),
+%	X == quit.
+
 start_shell :-
 	greeting,
 	repeat,
-	write('> '),
-	read(X),
-	do(X),
-	X == quit.
-
+	(
+	   write('> '),
+	   read(X),
+	   (
+	      do(X),
+	      X = quit, !      % prune and succeed, terminate repeat
+	   ;
+	      fail             % fail, don't show 'true', and repeat shell
+           )
+	),
+	halt.  % halt on quit
+	
 greeting :-
 	write('This is the native Prolog shell.'), nl,
 	native_help.
