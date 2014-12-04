@@ -31,8 +31,7 @@ start_shell :-
 	   ;
 	      fail             % fail, don't show 'true', and repeat shell
            )
-	),
-	halt.  % halt on quit
+	).
 	
 greeting :-
 	write('This is the native Prolog shell.'), nl,
