@@ -5,6 +5,17 @@
 % is modelled using the MYCIN certainty factors.
 
 % The only data structure is an attribute:value pair.
+%
+
+:- dynamic ghoul/1, fact/3, rule/1, rule/3, asked/1, askable/1, askable/4,
+	ruletrace/0, multivalued/1.
+
+% not normally defined in SWI-Prolog, though
+% http://swi-prolog.org/pldoc/man?section=opsummary
+% says it is
+% http://swi-prolog.org/pldoc/man?section=operators
+% says it is not, and it is not
+:- op(900, fy, not).
 
 % NOTE - CF calculation in update only good for positive CF
 
@@ -49,7 +60,7 @@ top_goals.
 % are tried as well
 
 top(Attr) :-
-	findgoal(av(Attr,Val),CF,[goal(Attr)]),!.
+	findgoal(av(Attr,_Val),_CF,[goal(Attr)]),!.
 top(_) :- true.
 
 % prints all hypotheses for a given attribute
@@ -87,12 +98,12 @@ printlist([H|T]) :-
 %     value doesn't match, but its single valued and known with
 %     certainty 100 definitely fail
 
-findgoal(X,Y,_) :- bugdisp(['  ',X]),fail.
+findgoal(X,_Y,_) :- bugdisp(['  ',X]),fail.
 
 findgoal(not Goal,NCF,Hist) :-
 	findgoal(Goal,CF,Hist),
 	NCF is - CF, !.
-findgoal(Goal,CF,Hist) :-
+findgoal(Goal,CF,_Hist) :-
 	fact(Goal,CF,_), !.
 %findgoal(av(Attr,Val),CF) :-
 %	bound(Val),
@@ -129,7 +140,7 @@ fg(Goal,CF,_) :- fact(Goal,CF,_).
 
 % can_ask shows how to query the user for various types of goal patterns
 
-can_ask(av(Attr,Val),Hist) :-
+can_ask(av(Attr,_Val),Hist) :-
 	not asked(av(Attr,_)),
 	askable(Attr,Menu,Edit,Prompt),
 	query_user(Attr,Prompt,Menu,Edit,Hist),
@@ -210,7 +221,7 @@ query_user(Attr,Prompt,[yes,no],_,Hist) :-
 	get_user(X,Hist),
 	get_vcf(X,Val,CF),
 	asserta( fact(av(Attr,Val),CF,[user]) ).
-query_user(Attr,Prompt,Menu,Edit,Hist) :-
+query_user(Attr,Prompt,Menu,_Edit,Hist) :-
 	write(Prompt),nl,
 	menu_read(VList,Menu,Hist),
 	assert_list(Attr,VList).
@@ -226,7 +237,7 @@ get_user(X,Hist) :-
 	process_ans(X,Hist).
 
 process_ans([why],Hist) :- nl,write_hist(Hist), !, fail.
-process_ans(X,_).
+process_ans(_,_).
 
 write_hist([]) :- nl.
 write_hist([goal(X)|T]) :-
@@ -236,7 +247,7 @@ write_hist([N|T]) :-
 	list_rule(N),
 	!, write_hist(T).
 
-write_list(N,[]).
+write_list(_,[]).
 write_list(N,[H|T]) :-
 	tab(N),write(H),nl,
 	write_list(N,T).
@@ -278,7 +289,7 @@ prove(N,_,_) :-
 	bugdisp(['fail rule',N]),
 	fail.
 
-prov([],Tally,Tally,Hist).
+prov([],Tally,Tally,_Hist).
 prov([H|T],CurTal,Tally,Hist) :-
 	findgoal(H,CF,Hist),
 	minimum(CurTal,CF,Tal),
@@ -304,7 +315,7 @@ erase_other(Attr) :-
 	CF < 100,
 	retract( fact(av(Attr,Val),CF,_) ),
 	fail.
-erase_other(Attr) :-true.
+erase_other(_Attr) :-true.
 
 adjust(CF1,CF2,CF) :-
 	X is CF1 * CF2 / 100,
@@ -365,7 +376,7 @@ set_trace(on) :-
 set_trace(_).
 
 single_valued(A) :-multivalued(A),!,fail.
-single_valued(A) :-true.
+single_valued(_) :-true.
 
 list_facts :-
 	fact(X,Y,_),
@@ -373,17 +384,19 @@ list_facts :-
 	fail.
 list_facts :-true.
 
+%
+%
 do_over :-
-	abolish(asked,1),
-	abolish(fact,3).
+	retractall(asked(_)),
+	retractall(fact(_,_,_)).
 
 clear :-
-	abolish(asked,1),
-	abolish(fact,3),
-	abolish(rule,1),
-	abolish(multivalued,1),
-	abolish(askable,1),
-	abolish(ghoul,1).
+	retractall(asked(_)),
+	retractall(fact(_,_,_)),
+	retractall(rule(_)),
+	retractall(multivalued(_)),
+	retractall(askable(_)),
+	retractall(ghoul(_)).
 
 blank_lines(0).
 blank_lines(N) :-
@@ -405,16 +418,7 @@ write_lin([H|T]) :-
 	write(H), tab(1),
 	write_lin(T).
 
-flatten([],[]) :- !.
-flatten([[]|T],T2) :-
-	flatten(T,T2), !.
-flatten([[X|Y]|T], L) :-
-	flatten([X|[Y|T]],L), !.
-flatten([H|T],[H|T2]) :-
-	flatten(T,T2).
-
-member(X,[X|Y]).
-member(X,[Y|Z]) :- member(X,Z).
+% removed member and flatten, already in SWI-Prolog
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % LDRULS - this module reads a rule file and translates it to internal
@@ -449,16 +453,16 @@ process(L) :-
 	write(L),nl.
 
 clear_db :-
-	abolish(cf_model,1),
-	abolish(ghoul,1),
-	abolish(askable,4),
-	abolish(output,3),
-	abolish(rule,3).
+	retractall(cf_model(_)),
+	retractall(ghoul(_)),
+	retractall(askable(_,_,_,_)),
+	retractall(output(_, _, _)),
+	retractall(rule(_, _, _)).
 
 bug(cf_model(X)) :- write(cf_model(X)),nl,!.
 bug(ghoul(X)):- write(ghoul(X)),nl,!.
 bug(askable(A,_,_,_)):- write('askable '),write(A),nl,!.
-bug(output(A,V,PL)):- write('output '),write(V),nl,!.
+bug(output(_A,V,_PL)):- write('output '),write(V),nl,!.
 bug(rule(N,_,_)):- write('rule '),write(N),nl,!.
 bug(X) :- write(X),nl.
 
@@ -521,7 +525,7 @@ plist([Htext|Ttext]) --> [Htext],plist(Ttext).
 
 read_line(L) :- read_word_list([13,10], L), !.
 
-read_sentence(S) :- read_word_list([`.], S), !.
+read_sentence(S) :- read_word_list([0'.], S), !.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% From the Cogent Prolog Toolbox
@@ -580,7 +584,7 @@ readword(C,W,C2) :-                % otherwise if charcter does not
         get0(C1),                  % accumulating them until
         restword(C1,Cs,C2),        % we have all the words
         name(W, [NewC|Cs]).        % then make it an atom
-readword(C,W,C2) :-                % otherwise
+readword(_C,W,C2) :-                % otherwise
         get0(C1),
         readword(C1,W,C2).         % start a new word
 
